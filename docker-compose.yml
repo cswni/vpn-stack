@@ -59,7 +59,8 @@ services:
       - ./caddy/data:/data
       - ./caddy/config:/config
     networks:
-      - vpn_net
+      vpn_net:
+        ipv4_address: 172.20.0.4
 
 networks:
   vpn_net:
