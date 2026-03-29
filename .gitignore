@@ -1,5 +1,5 @@
 .env
 wireguard/
-pihole/
+pihole/etc-pihole/
 caddy/data/
 caddy/config/

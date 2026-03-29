@@ -34,6 +34,7 @@ services:
       - FTLCONF_dns_listeningMode=ALL
       - FTLCONF_dns_bogusPriv=false
       - FTLCONF_dns_upstreams=1.1.1.1;1.0.0.1
+      - FTLCONF_misc_etc_dnsmasq_d=true
     volumes:
       - ./pihole/etc-pihole:/etc/pihole
       - ./pihole/etc-dnsmasq.d:/etc/dnsmasq.d

@@ -86,6 +86,21 @@ sudo docker compose up -d
 | `PIHOLE_PASSWORD` | 🚫 Password for the Pi-hole admin panel |
 | `TZ` | 🕐 Timezone (e.g. `America/New_York`) |
 
+### 🏠 Local DNS Overrides
+
+This repo includes `pihole/etc-dnsmasq.d/99-local.conf` for local `zionode.com` overrides:
+
+```conf
+address=/zionode.com/192.168.137.203
+address=/.zionode.com/192.168.137.203
+address=/s1.zionode.com/192.168.137.203
+address=/s2.zionode.com/192.168.137.201
+```
+
+Pi-hole v6 needs `etc_dnsmasq_d` enabled to load this directory. The compose file sets `FTLCONF_misc_etc_dnsmasq_d=true` automatically.
+
+This only fixes DNS resolution. Accessing `192.168.137.x` still requires a local route to that subnet when the client is on the same LAN, or a separate route/tunnel to the home network when remote.
+
 ### 🌐 Network Layout
 
 ```
@@ -179,6 +194,14 @@ If this times out, check upstream DNS configuration:
 
 ```bash
 docker exec pihole grep -A4 "upstreams" /etc/pihole/pihole.toml
+```
+
+If local overrides in `pihole/etc-dnsmasq.d/99-local.conf` are not loading:
+
+```bash
+docker exec pihole grep etc_dnsmasq_d /etc/pihole/pihole.toml
+# Should show: etc_dnsmasq_d = true
+docker exec pihole nslookup premas-web.zionode.com 127.0.0.1
 ```
 
 </details>
