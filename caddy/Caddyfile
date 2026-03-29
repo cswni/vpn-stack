@@ -1,0 +1,7 @@
+vpn.workingpos.com {
+    reverse_proxy wg-easy:51821
+}
+
+dns.workingpos.com {
+    reverse_proxy pihole:80
+}

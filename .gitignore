@@ -1,0 +1,5 @@
+.env
+wireguard/
+pihole/
+caddy/data/
+caddy/config/
