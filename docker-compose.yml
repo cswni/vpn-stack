@@ -5,7 +5,7 @@ services:
     container_name: wg-easy
     environment:
       - WG_HOST=${WG_HOST}
-      - PASSWORD=${WG_PASSWORD}
+      - PASSWORD_HASH=${WG_PASSWORD_HASH}
       - WG_DEFAULT_DNS=172.20.0.3
       - WG_ALLOWED_IPS=0.0.0.0/0
       - WG_MTU=1420

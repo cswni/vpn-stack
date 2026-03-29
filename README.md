@@ -82,7 +82,7 @@ sudo docker compose up -d
 | Variable | Description |
 |:---------|:------------|
 | `WG_HOST` | 🌐 VPS public IP address |
-| `WG_PASSWORD` | 🔐 Password for the WireGuard web UI |
+| `WG_PASSWORD_HASH` | 🔐 bcrypt password hash for the WireGuard web UI |
 | `PIHOLE_PASSWORD` | 🚫 Password for the Pi-hole admin panel |
 | `TZ` | 🕐 Timezone (e.g. `America/New_York`) |
 
@@ -115,7 +115,15 @@ dns.yourdomain.com {
 ## 📱 Adding VPN Clients
 
 1. 🌐 Open `https://vpn.yourdomain.com`
-2. 🔑 Log in with the password you set in `WG_PASSWORD`
+2. 🔑 Log in with the plain-text password you entered during `setup.sh`
+
+Generate a hash manually if you are creating `.env` yourself:
+
+```bash
+docker run --rm ghcr.io/wg-easy/wg-easy:14 node -e 'const bcrypt = require("bcryptjs"); const hash = bcrypt.hashSync("YOUR_PASSWORD", 10); console.log(hash.replace(/\$/g, "$$$$"));'
+```
+
+Then put the output in `WG_PASSWORD_HASH`.
 3. ➕ Click **New Client** and give it a name
 4. 📷 Scan the QR code with the WireGuard app on your phone, or download the `.conf` file for desktop
 

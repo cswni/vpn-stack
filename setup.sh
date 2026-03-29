@@ -15,6 +15,16 @@ log()  { echo -e "${GREEN}[+]${NC} $1"; }
 warn() { echo -e "${YELLOW}[!]${NC} $1"; }
 err()  { echo -e "${RED}[x]${NC} $1"; exit 1; }
 
+get_env_value() {
+    local key="$1"
+    sed -n "s/^${key}=//p" .env | head -n 1
+}
+
+generate_wg_password_hash() {
+    local password="$1"
+    docker run --rm ghcr.io/wg-easy/wg-easy:14 node -e "const bcrypt = require('bcryptjs'); const hash = bcrypt.hashSync(process.argv[1], 10); console.log(hash.replace(/\\$/g, '$$$$'));" "$password"
+}
+
 # -----------------------------------------------------------
 # Pre-flight checks
 # -----------------------------------------------------------
@@ -31,7 +41,23 @@ log "Detected VPS IP: $VPS_IP"
 
 if [[ -f .env ]]; then
     warn ".env already exists, loading it"
-    source .env
+    WG_HOST="$(get_env_value WG_HOST)"
+    WG_PASSWORD_HASH="$(get_env_value WG_PASSWORD_HASH)"
+    LEGACY_WG_PASSWORD="$(get_env_value WG_PASSWORD)"
+    PIHOLE_PASSWORD="$(get_env_value PIHOLE_PASSWORD)"
+    TZ="$(get_env_value TZ)"
+
+    if [[ -z "$WG_PASSWORD_HASH" && -n "$LEGACY_WG_PASSWORD" ]]; then
+        warn "Migrating legacy WG_PASSWORD to WG_PASSWORD_HASH"
+        WG_PASSWORD_HASH="$(generate_wg_password_hash "$LEGACY_WG_PASSWORD")"
+        cat > .env <<EOF
+WG_HOST=$WG_HOST
+WG_PASSWORD_HASH=$WG_PASSWORD_HASH
+PIHOLE_PASSWORD=$PIHOLE_PASSWORD
+TZ=$TZ
+EOF
+        log "Updated .env to use WG_PASSWORD_HASH"
+    fi
 else
     read -rp "VPS public IP [$VPS_IP]: " input_ip
     WG_HOST="${input_ip:-$VPS_IP}"
@@ -45,9 +71,18 @@ else
     read -rp "Timezone [America/New_York]: " input_tz
     TZ="${input_tz:-America/New_York}"
 
+    if ! command -v docker &>/dev/null; then
+        log "Installing Docker..."
+        apt update -qq && apt upgrade -y -qq
+        apt install -y -qq docker.io docker-compose-v2
+        systemctl enable --now docker
+    fi
+
+    WG_PASSWORD_HASH="$(generate_wg_password_hash "$WG_PASSWORD")"
+
     cat > .env <<EOF
 WG_HOST=$WG_HOST
-WG_PASSWORD=$WG_PASSWORD
+WG_PASSWORD_HASH=$WG_PASSWORD_HASH
 PIHOLE_PASSWORD=$PIHOLE_PASSWORD
 TZ=$TZ
 EOF
