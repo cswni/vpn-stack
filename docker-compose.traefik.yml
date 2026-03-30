@@ -5,7 +5,6 @@ services:
     environment:
       - WG_HOST=${WG_HOST}
       - PASSWORD_HASH=${WG_PASSWORD_HASH}
-      # Apuntamos a la nueva IP segura de Pi-hole
       - WG_DEFAULT_DNS=10.9.9.3
       - WG_ALLOWED_IPS=0.0.0.0/0
       - WG_MTU=1420
@@ -41,14 +40,12 @@ services:
       - WEBPASSWORD=${PIHOLE_PASSWORD}
       - FTLCONF_dns_listeningMode=ALL
       - FTLCONF_dns_bogusPriv=false
-      - FTLCONF_dns_upstreams=8.8.8.8;8.8.4.4
+      - FTLCONF_dns_upstreams=1.1.1.1;1.0.0.1
     volumes:
       - ./pihole/etc-pihole:/etc/pihole
       - ./pihole/etc-dnsmasq.d:/etc/dnsmasq.d
-    # Esto evita que Pi-hole haga "bucles" tratando de resolverse a sí mismo
     dns:
-      - 8.8.8.8
-      - 8.8.4.4
+      - 1.1.1.1
     labels:
       - traefik.enable=true
       - traefik.constraint-label=${TRAEFIK_CONSTRAINT_LABEL:-traefik-net}
