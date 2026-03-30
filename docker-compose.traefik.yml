@@ -5,9 +5,11 @@ services:
     environment:
       - WG_HOST=${WG_HOST}
       - PASSWORD_HASH=${WG_PASSWORD_HASH}
-      - WG_DEFAULT_DNS=10.9.9.3
+      - WG_DEFAULT_DNS=172.30.0.3
       - WG_ALLOWED_IPS=0.0.0.0/0
       - WG_MTU=1420
+      - WG_POST_UP=iptables -A FORWARD -i wg0 -j ACCEPT; iptables -A FORWARD -o wg0 -j ACCEPT; iptables -t nat -A POSTROUTING -s 10.8.0.0/24 -o eth2 -j MASQUERADE
+      - WG_POST_DOWN=iptables -D FORWARD -i wg0 -j ACCEPT; iptables -D FORWARD -o wg0 -j ACCEPT; iptables -t nat -D POSTROUTING -s 10.8.0.0/24 -o eth2 -j MASQUERADE
     volumes:
       - ./wireguard:/etc/wireguard
     ports:
@@ -25,11 +27,11 @@ services:
       - traefik.http.routers.wg-easy.rule=Host(`${VPN_DOMAIN:-vpn.workingpos.com}`)
       - traefik.http.routers.wg-easy.entrypoints=${TRAEFIK_ENTRYPOINT:-https}
       - traefik.http.routers.wg-easy.tls=true
-      - traefik.http.routers.wg-easy.tls.certresolver=${TRAEFIK_CERTRESOLVER:-le}
+      - traefik.http.routers.wg-easy.tls.certresolver=le
       - traefik.http.services.wg-easy.loadbalancer.server.port=51821
     networks:
       vpn_net:
-        ipv4_address: 10.9.9.2
+        ipv4_address: 172.30.0.2
       traefik-net:
 
   pihole:
@@ -41,11 +43,10 @@ services:
       - FTLCONF_dns_listeningMode=ALL
       - FTLCONF_dns_bogusPriv=false
       - FTLCONF_dns_upstreams=1.1.1.1;1.0.0.1
+      - FTLCONF_misc_etc_dnsmasq_d=true
     volumes:
       - ./pihole/etc-pihole:/etc/pihole
       - ./pihole/etc-dnsmasq.d:/etc/dnsmasq.d
-    dns:
-      - 1.1.1.1
     labels:
       - traefik.enable=true
       - traefik.constraint-label=${TRAEFIK_CONSTRAINT_LABEL:-traefik-net}
@@ -57,7 +58,7 @@ services:
       - traefik.http.services.pihole.loadbalancer.server.port=80
     networks:
       vpn_net:
-        ipv4_address: 10.9.9.3
+        ipv4_address: 172.30.0.3
       traefik-net:
 
 networks:
