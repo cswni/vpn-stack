@@ -36,6 +36,24 @@
 - 🌍 Two DNS `A` records pointing to your VPS IP
 - 🔓 Ports open: `51820/udp`, `80/tcp`, `443/tcp`
 
+## 🚀 Deployment Modes
+
+### Caddy mode
+
+Use this on a dedicated VPS where this repo manages HTTPS itself.
+
+- Compose file: `docker-compose.yml`
+- Setup script: `setup.sh`
+
+### Traefik mode
+
+Use this when the VPS already has Traefik running and exposing an external Docker network.
+
+- Compose file: `docker-compose.traefik.yml`
+- Setup script: `setup-traefik.sh`
+
+The Traefik mode keeps this repo off ports `80/443` and instead publishes labels on the existing Traefik network.
+
 ## ⚡ Quick Start
 
 ```bash
@@ -44,13 +62,23 @@ cd vpn-stack
 sudo bash setup.sh
 ```
 
-The setup script handles everything interactively:
+The Caddy setup script handles everything interactively:
 
 1. 📝 Prompts for your VPS IP, passwords, and timezone
 2. 📦 Installs Docker if needed
 3. 🔌 Frees port 53 (disables `systemd-resolved`)
 4. 🐳 Pulls images and starts the stack
 5. ✅ Verifies all services are running
+
+For a VPS that already has Docker + Traefik:
+
+```bash
+git clone https://github.com/cswni/vpn-stack.git
+cd vpn-stack
+sudo bash setup-traefik.sh
+```
+
+`setup-traefik.sh` assumes Docker is already installed and asks for the Traefik network/label settings.
 
 ## 🔧 Manual Setup
 
@@ -63,7 +91,7 @@ cp .env.example .env
 nano .env
 ```
 
-**2️⃣ Update `caddy/Caddyfile` with your domains.**
+**2️⃣ For Caddy mode, update `caddy/Caddyfile` with your domains.**
 
 **3️⃣ Free port 53 and deploy:**
 
@@ -85,6 +113,12 @@ sudo docker compose up -d
 | `WG_PASSWORD_HASH` | 🔐 bcrypt password hash for the WireGuard web UI |
 | `PIHOLE_PASSWORD` | 🚫 Password for the Pi-hole admin panel |
 | `TZ` | 🕐 Timezone (e.g. `America/New_York`) |
+| `VPN_DOMAIN` | 🌐 Traefik mode VPN hostname |
+| `DNS_DOMAIN` | 🌐 Traefik mode Pi-hole hostname |
+| `TRAEFIK_DOCKER_NETWORK` | 🌐 Existing external Docker network used by Traefik |
+| `TRAEFIK_CONSTRAINT_LABEL` | 🏷️ Traefik label filter value |
+| `TRAEFIK_ENTRYPOINT` | 🔌 Traefik HTTPS entrypoint name |
+| `TRAEFIK_CERTRESOLVER` | 🔐 Traefik certresolver name |
 
 ### 🏠 Local DNS Overrides
 
@@ -127,6 +161,14 @@ dns.yourdomain.com {
 
 > 💡 Caddy automatically obtains and renews TLS certificates from Let's Encrypt. No extra config needed.
 
+### 🌐 Traefik Compose
+
+If your VPS already runs Traefik, use `docker-compose.traefik.yml` instead. It expects:
+
+- an existing external Docker network, default `traefik-net`
+- Traefik Docker provider enabled
+- Traefik constraint label matching `TRAEFIK_CONSTRAINT_LABEL`
+
 ## 📱 Adding VPN Clients
 
 1. 🌐 Open `https://vpn.yourdomain.com`
@@ -142,6 +184,12 @@ Then put the output in `WG_PASSWORD_HASH`.
 3. ➕ Click **New Client** and give it a name
 4. 📷 Scan the QR code with the WireGuard app on your phone, or download the `.conf` file for desktop
 
+To rotate the wg-easy password later:
+
+```bash
+sudo bash set-wg-password.sh
+```
+
 > 🍎 **iOS / Android:** Download [WireGuard](https://www.wireguard.com/install/) from the App Store or Play Store  
 > 🖥️ **Windows / macOS / Linux:** Download the desktop client from [wireguard.com/install](https://www.wireguard.com/install/)
 
@@ -151,8 +199,11 @@ Then put the output in `WG_PASSWORD_HASH`.
 vpn-stack/
 ├── 📄 .env.example          # Template for environment variables
 ├── 📄 .gitignore             # Keeps secrets and data out of git
-├── 🐳 docker-compose.yml     # Service definitions
-├── 🚀 setup.sh               # Automated setup script
+├── 🐳 docker-compose.yml     # Caddy-based deployment
+├── 🐳 docker-compose.traefik.yml # Traefik-based deployment
+├── 🚀 setup.sh               # Automated setup for dedicated VPS
+├── 🚀 setup-traefik.sh       # Automated setup for existing Traefik host
+├── 🔐 set-wg-password.sh     # Rotate wg-easy password hash safely
 ├── 📂 caddy/
 │   └── 📄 Caddyfile          # Reverse proxy configuration
 └── 📂 docs/                  # GitHub Pages documentation

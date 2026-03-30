@@ -1,0 +1,68 @@
+services:
+  wg-easy:
+    image: ghcr.io/wg-easy/wg-easy:14
+    restart: unless-stopped
+    environment:
+      - WG_HOST=${WG_HOST}
+      - PASSWORD_HASH=${WG_PASSWORD_HASH}
+      - WG_DEFAULT_DNS=${WG_HOST}
+      - WG_ALLOWED_IPS=0.0.0.0/0
+      - WG_MTU=1420
+    volumes:
+      - ./wireguard:/etc/wireguard
+    ports:
+      - "51820:51820/udp"
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    sysctls:
+      - net.ipv4.ip_forward=1
+      - net.ipv4.conf.all.src_valid_mark=1
+    labels:
+      - traefik.enable=true
+      - traefik.constraint-label=${TRAEFIK_CONSTRAINT_LABEL:-traefik-net}
+      - traefik.docker.network=${TRAEFIK_DOCKER_NETWORK:-traefik-net}
+      - traefik.http.routers.wg-easy.rule=Host(`${VPN_DOMAIN:-vpn.workingpos.com}`)
+      - traefik.http.routers.wg-easy.entrypoints=${TRAEFIK_ENTRYPOINT:-https}
+      - traefik.http.routers.wg-easy.tls=true
+      - traefik.http.routers.wg-easy.tls.certresolver=${TRAEFIK_CERTRESOLVER:-le}
+      - traefik.http.services.wg-easy.loadbalancer.server.port=51821
+    networks:
+      - vpn_net
+      - traefik-net
+
+  pihole:
+    image: pihole/pihole:latest
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ:-America/New_York}
+      - WEBPASSWORD=${PIHOLE_PASSWORD}
+      - FTLCONF_dns_listeningMode=ALL
+      - FTLCONF_dns_bogusPriv=false
+      - FTLCONF_dns_upstreams=1.1.1.1;1.0.0.1
+      - FTLCONF_misc_etc_dnsmasq_d=true
+    volumes:
+      - ./pihole/etc-pihole:/etc/pihole
+      - ./pihole/etc-dnsmasq.d:/etc/dnsmasq.d
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+    labels:
+      - traefik.enable=true
+      - traefik.constraint-label=${TRAEFIK_CONSTRAINT_LABEL:-traefik-net}
+      - traefik.docker.network=${TRAEFIK_DOCKER_NETWORK:-traefik-net}
+      - traefik.http.routers.pihole.rule=Host(`${DNS_DOMAIN:-dns.workingpos.com}`)
+      - traefik.http.routers.pihole.entrypoints=${TRAEFIK_ENTRYPOINT:-https}
+      - traefik.http.routers.pihole.tls=true
+      - traefik.http.routers.pihole.tls.certresolver=${TRAEFIK_CERTRESOLVER:-le}
+      - traefik.http.services.pihole.loadbalancer.server.port=80
+    networks:
+      - vpn_net
+      - traefik-net
+
+networks:
+  vpn_net:
+    driver: bridge
+  traefik-net:
+    external: true
+    name: ${TRAEFIK_DOCKER_NETWORK:-traefik-net}

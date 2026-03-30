@@ -1,5 +1,6 @@
 .env
 wireguard/
 pihole/etc-pihole/
+pihole/gravity.db
 caddy/data/
 caddy/config/
